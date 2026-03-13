@@ -89,6 +89,11 @@ def backup_scaled_dot_product_attention(query, key, value, attn_mask=None, dropo
     attn_weight = torch.softmax(attn_weight, dim=-1)
     attn_weight = torch.dropout(attn_weight, dropout_p, train=True)
     return attn_weight @ value
+
+def backup_scaled_dot_product_attention2(query, key, value, attn_mask=None, is_causal=False, enable_gqa=None) -> torch.Tensor:
+    
+    return  F.scaled_dot_product_attention(query, key, value, attn_mask=attn_mask, is_causal=is_causal)
+
 # =============================================================================
 # SDPA helpers
 # =============================================================================
@@ -103,7 +108,7 @@ def _sdpa_attention(q, k, v, window_size, enable_gqa):
     if k.device.type == "cuda":
         atten_func = F.scaled_dot_product_attention
     else:
-        atten_func = backup_scaled_dot_product_attention
+        atten_func = backup_scaled_dot_product_attention #2 #nogqa
 
     # Full context, same length
     if (window < 0 or window >= Tq) and Tq == Tk:
@@ -128,7 +133,7 @@ def _sdpa_attention(q, k, v, window_size, enable_gqa):
     # sliding window (left)
     if window >= 0 and window < Tk:
         mask = mask & ((row_idx - col_idx) <= window)
-    return F.scaled_dot_product_attention(q, k, v, attn_mask=mask)#, enable_gqa=enable_gqa)
+    return atten_func(q, k, v, attn_mask=mask, enable_gqa=enable_gqa)
 
 # =============================================================================
 # Public API: Same interface as FA3
