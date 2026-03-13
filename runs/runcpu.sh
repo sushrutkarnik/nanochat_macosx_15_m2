@@ -39,12 +39,26 @@ python -m scripts.tok_eval
 # # train a small 4 layer model
 # # I tuned this run to complete in about 30 minutes on my MacBook Pro M3 Max.
 # # To get better results, try increasing num_iterations, or get other ideas from your favorite LLM.
+# python -m scripts.base_train \
+#     --depth=6 \
+#     --head-dim=64 \
+#     --window-pattern=L \
+#     --max-seq-len=512 \
+#     --device-batch-size=32 \
+#     --total-batch-size=16384 \
+#     --eval-every=100 \
+#     --eval-tokens=524288 \
+#     --core-metric-every=-1 \
+#     --sample-every=100 \
+#     --num-iterations=1000 \
+#     --run=$WANDB_RUN
+
 python -m scripts.base_train \
-    --depth=24 \
+    --depth=12 \
     --head-dim=64 \
     --window-pattern=L \
-    --max-seq-len=512 \
-    --device-batch-size=32 \
+    --max-seq-len=1024 \
+    --device-batch-size=4 \
     --total-batch-size=16384 \
     --eval-every=100 \
     --eval-tokens=524288 \
@@ -52,6 +66,7 @@ python -m scripts.base_train \
     --sample-every=100 \
     --num-iterations=1000 \
     --run=$WANDB_RUN
+
 python -m scripts.base_eval --device-batch-size=1 --split-tokens=16384 --max-per-task=16
 
 # SFT (~10 minutes on my MacBook Pro M3 Max)

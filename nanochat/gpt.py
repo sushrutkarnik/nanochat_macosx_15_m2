@@ -114,7 +114,7 @@ class CausalSelfAttention(nn.Module):
                 k=k, v=v,
                 cache_seqlens=kv_cache.cache_seqlens,
                 causal=True,
-                window_size=window_size,
+                window_size=window_size
             )
             # Advance position after last layer processes
             if self.layer_idx == kv_cache.n_layers - 1:
