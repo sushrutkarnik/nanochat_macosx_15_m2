@@ -60,10 +60,10 @@ python -m scripts.base_train \
     --max-seq-len=1024 \
     --device-batch-size=8 \
     --total-batch-size=8192 \
-    --eval-every=100 \
+    --eval-every=500 \
     --eval-tokens=524288 \
     --core-metric-every=-1 \
-    --sample-every=100 \
+    --sample-every=500 \
     --num-iterations=1000 \
     --run=$WANDB_RUN
 
@@ -73,11 +73,10 @@ python -m scripts.base_eval --device-batch-size=1 --split-tokens=16384 --max-per
 curl -L -o $NANOCHAT_BASE_DIR/identity_conversations.jsonl https://karpathy-public.s3.us-west-2.amazonaws.com/identity_conversations.jsonl
 python -m scripts.chat_sft \
     --max-seq-len=1024 \
-    --device-batch-size=32 \
+    --device-batch-size=8 \
     --total-batch-size=8192 \
     --eval-every=-1 \
     --eval-tokens=524288 \
-    --num-iterations=1500 \
     --run=$WANDB_RUN
 
 #reduced mmlu humaneval and spellingbee to just 10 problems, slower than expected
