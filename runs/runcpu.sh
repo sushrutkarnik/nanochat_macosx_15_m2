@@ -54,11 +54,11 @@ python -m scripts.tok_eval
 #     --run=$WANDB_RUN
 
 python -m scripts.base_train \
-    --depth=12 \
-    --head-dim=64 \
-    --window-pattern=L \
+    --depth=8 \
+    --head-dim=128 \
+    --window-pattern=SSSL \
     --max-seq-len=1024 \
-    --device-batch-size=4 \
+    --device-batch-size=16 \
     --total-batch-size=16384 \
     --eval-every=100 \
     --eval-tokens=524288 \

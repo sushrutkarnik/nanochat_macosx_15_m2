@@ -108,7 +108,7 @@ def _sdpa_attention(q, k, v, window_size, enable_gqa):
     if k.device.type == "cuda":
         atten_func = F.scaled_dot_product_attention
     else:
-        atten_func = backup_scaled_dot_product_attention #2 #nogqa
+        atten_func = backup_scaled_dot_product_attention2 #nogqa
 
     # Full context, same length
     if (window < 0 or window >= Tq) and Tq == Tk:
