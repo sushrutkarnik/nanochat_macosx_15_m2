@@ -120,7 +120,7 @@ if __name__ == '__main__':
             print0(f"Using {name}={arg_val}")
 
     orig_model = model
-    # model = torch.compile(model, dynamic=False)
+    model = torch.compile(model, dynamic=False)
     depth = model.config.n_layer
     num_flops_per_token = model.estimate_flops()
     tokens_per_fwdbwd = args.device_batch_size * args.max_seq_len # tokens per iteration for a single rank
