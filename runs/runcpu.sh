@@ -10,31 +10,50 @@
 # Think of this run as educational/fun demo, not something you should expect to work well.
 # You may also want to run this script manually and one by one, copy pasting commands into your terminal.
 
-# # # all the setup stuff
-export NANOCHAT_BASE_DIR="$HOME/.cache/nanochat"
-mkdir -p $NANOCHAT_BASE_DIR
-command -v uv &> /dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh
-[ -d ".venv" ] || uv venv
-# ## Fails on macbook, instead remove torch cpu from UV file and do this here
-uv sync --extra cpu
-uv pip install torch torchvision torchaudio --upgrade --index-url https://download.pytorch.org/whl/cpu
+# # # # all the setup stuff
+# export NANOCHAT_BASE_DIR="$HOME/.cache/nanochat"
+# mkdir -p $NANOCHAT_BASE_DIR
+# command -v uv &> /dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh
+# [ -d ".venv" ] || uv venv
+# # ## Fails on macbook, instead remove torch cpu from UV file and do this here
+# uv sync --extra cpu
+# uv pip install torch torchvision torchaudio --upgrade --index-url https://download.pytorch.org/whl/test/cpu --prerelease allow
+
+# source .venv/bin/activate
+# uv pip install torch torchvision torchaudio --upgrade --index-url https://download.pytorch.org/whl/test/cpu --prerelease allow
+
+
 # uv pip uninstall numpy
 # uv pip install --force-reinstall -v "numpy==1.25.2"
-# uv sync --extra cpu
 
+# if [ -z "$WANDB_RUN" ]; then
+#     WANDB_RUN=dummy
+# fi
+
+export NANOCHAT_BASE_DIR="$HOME/.cache/nanochat"
+mkdir -p "$NANOCHAT_BASE_DIR"
+
+# 1. Update uv to ensure you have the latest features
+command -v uv &> /dev/null || curl -LsSf https://astral.sh | sh
+uv self update
+# 2. Kill the old x86 environment and lockfile, fixes torch 2.2.2 vs 2.9.1 issue
+rm -rf .venv uv.lock
+uv python install 3.12
+uv sync --python 3.12
 source .venv/bin/activate
-uv pip install torch torchvision torchaudio --upgrade --index-url https://download.pytorch.org/whl/cpu
-uv pip uninstall numpy
-uv pip install --force-reinstall -v "numpy==1.25.2"
 
 if [ -z "$WANDB_RUN" ]; then
-    WANDB_RUN=dummy
+    export WANDB_RUN=dummy
 fi
 
+# 8. Verify GPU/MPS Availability
+python -c "import torch; print(f'Torch: {torch.__version__} | MPS: {torch.backends.mps.is_available()}')"
+
+
 # # train tokenizer on ~2B characters (~34 seconds on my MacBook Pro M3 Max)
-python -m nanochat.dataset -n 8
-python -m scripts.tok_train --max-chars=2000000000
-python -m scripts.tok_eval
+# python -m nanochat.dataset -n 8
+# python -m scripts.tok_train --max-chars=2000000000
+# python -m scripts.tok_eval
 
 # # train a small 4 layer model
 # # I tuned this run to complete in about 30 minutes on my MacBook Pro M3 Max.
@@ -56,7 +75,7 @@ python -m scripts.tok_eval
 python -m scripts.base_train \
     --depth=8 \
     --head-dim=256 \
-    --window-pattern=SSSL \
+    --window-pattern=L \
     --max-seq-len=1024 \
     --device-batch-size=8 \
     --total-batch-size=8192 \
@@ -77,10 +96,11 @@ python -m scripts.chat_sft \
     --total-batch-size=8192 \
     --eval-every=-1 \
     --eval-tokens=524288 \
+    --num-iterations=500 \
     --run=$WANDB_RUN
 
-#reduced mmlu humaneval and spellingbee to just 10 problems, slower than expected
-python -m scripts.chat_eval -i sft
+# reduced mmlu humaneval and spellingbee to just 10 problems, slower than expected
+# python -m scripts.chat_eval -i sft
 
 # Chat with the model over CLI
 # The model should be able to say that it is Paris.

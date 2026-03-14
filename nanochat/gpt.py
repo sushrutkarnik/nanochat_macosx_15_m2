@@ -39,8 +39,11 @@ class GPTConfig:
     window_pattern: str = "SSSL"
 
 
+# def norm(x):
+#     return F.layer_norm(x, (x.size(-1),)) # note that this will run in bf16, seems ok
+
 def norm(x):
-    return F.layer_norm(x, (x.size(-1),)) # note that this will run in bf16, seems ok
+    return F.rms_norm(x, (x.size(-1),)) # note that this will run in bf16, seems ok
 
 class Linear(nn.Linear):
     """nn.Linear that casts weights to match input dtype in forward.
