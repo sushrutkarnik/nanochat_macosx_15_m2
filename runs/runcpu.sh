@@ -55,11 +55,11 @@ python -m scripts.tok_eval
 
 python -m scripts.base_train \
     --depth=8 \
-    --head-dim=128 \
+    --head-dim=256 \
     --window-pattern=SSSL \
     --max-seq-len=1024 \
-    --device-batch-size=16 \
-    --total-batch-size=16384 \
+    --device-batch-size=8 \
+    --total-batch-size=8192 \
     --eval-every=100 \
     --eval-tokens=524288 \
     --core-metric-every=-1 \
