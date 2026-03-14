@@ -134,7 +134,9 @@ if __name__ == '__main__':
 
     # Initialize the Optimizer (combined MuonAdamW: Muon for matrix params, AdamW for rest)
     # Note that pretraining ramps weight_decay to zero by end of pretraining, so SFT continues with zero
-    optimizer = model.setup_optimizer(unembedding_lr=args.unembedding_lr, embedding_lr=args.embedding_lr, matrix_lr=args.matrix_lr, weight_decay=0.0, device_type=device_type)
+    optimizer = model.setup_optimizer(unembedding_lr=args.unembedding_lr,
+                                       embedding_lr=args.embedding_lr, 
+                                       matrix_lr=args.matrix_lr, weight_decay=0.0, device_type=device_type)
 
     # Optionally warm-start optimizer from pretrained checkpoint (momentum buffers etc.)
     # Note: load_state_dict overwrites param_group metadata (LRs, betas, etc.) with the

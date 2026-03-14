@@ -41,6 +41,7 @@ rm -rf .venv uv.lock
 uv python install 3.12
 uv sync --python 3.12
 source .venv/bin/activate
+# "cut-cross-entropy>=25.1.1",
 
 if [ -z "$WANDB_RUN" ]; then
     export WANDB_RUN=dummy
@@ -83,7 +84,7 @@ python -m scripts.base_train \
     --eval-tokens=524288 \
     --core-metric-every=-1 \
     --sample-every=500 \
-    --num-iterations=1000 \
+    --num-iterations=2000 \
     --run=$WANDB_RUN
 
 python -m scripts.base_eval --device-batch-size=1 --split-tokens=16384 --max-per-task=16
@@ -91,10 +92,8 @@ python -m scripts.base_eval --device-batch-size=1 --split-tokens=16384 --max-per
 # SFT (~10 minutes on my MacBook Pro M3 Max)
 curl -L -o $NANOCHAT_BASE_DIR/identity_conversations.jsonl https://karpathy-public.s3.us-west-2.amazonaws.com/identity_conversations.jsonl
 python -m scripts.chat_sft \
-    --max-seq-len=1024 \
-    --device-batch-size=8 \
     --total-batch-size=8192 \
-    --eval-every=-1 \
+    --eval-every=500 \
     --eval-tokens=524288 \
     --num-iterations=500 \
     --run=$WANDB_RUN

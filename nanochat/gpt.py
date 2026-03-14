@@ -153,7 +153,7 @@ class Block(nn.Module):
         x = x + self.mlp(norm(x))
         return x
 
-
+# from cut_cross_entropy import linear_cross_entropy
 class GPT(nn.Module):
     def __init__(self, config, pad_vocab_size_to=64):
         """
@@ -422,12 +422,14 @@ class GPT(nn.Module):
 
         # Forward the lm_head (compute logits)
         softcap = 15 # smoothly cap the logits to the range [-softcap, softcap]
-        logits = self.lm_head(x) # (B, T, padded_vocab_size) <- very big tensor, large amount of memory
+        logits = self.lm_head(x.to(self.lm_head.weight.dtype)) # (B, T, padded_vocab_size) <- very big tensor, large amount of memory
         logits = logits[..., :self.config.vocab_size] # slice to remove padding
         logits = logits.float() # switch to fp32 for logit softcap and loss computation
         logits = softcap * torch.tanh(logits / softcap) # squash the logits
 
         if targets is not None:
+            if loss_reduction == 'mean' and not (targets != -1).any():
+                return logits.sum() * 0.0
             # training: given the targets, compute and return the loss
             # TODO experiment with chunked cross-entropy?
             loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1), ignore_index=-1, reduction=loss_reduction)
@@ -435,6 +437,19 @@ class GPT(nn.Module):
         else:
             # inference: just return the logits directly
             return logits
+
+
+        # # Forward the lm_head (compute logits)
+        # softcap = 15
+        # if targets is not None:
+        #     # training mode: compute and return the loss
+        #     loss = linear_cross_entropy(x.to( self.lm_head.weight.dtype), self.lm_head.weight, targets=targets, softcap=softcap, ignore_index=-1, reduction=loss_reduction, impl="torch_compile").view(-1)
+        #     return loss
+        # else:
+        #     # inference mode: compute and return the logits
+        #     logits = self.lm_head(x)
+        #     logits = softcap * torch.tanh(logits / softcap) # logits softcap
+        #     return logits
 
     @torch.inference_mode()
     def generate(self, tokens, max_tokens, temperature=1.0, top_k=None, seed=42):

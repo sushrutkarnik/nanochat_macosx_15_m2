@@ -325,8 +325,8 @@ if resuming:
 
 # -----------------------------------------------------------------------------
 # GradScaler for fp16 training (bf16/fp32 don't need it — bf16 has the same exponent range as fp32)
-# scaler = torch.amp.GradScaler() if COMPUTE_DTYPE == torch.float16 else None
-scaler = torch.cuda.amp.GradScaler() if COMPUTE_DTYPE == torch.float16 else None
+scaler = torch.amp.GradScaler() if COMPUTE_DTYPE == torch.float16 else None
+# scaler = torch.cuda.amp.GradScaler() if COMPUTE_DTYPE == torch.float16 else None
 # scaler = torch.cuda.amp.GradScaler(enabled=(dtype == 'float16'))
 
 if scaler is not None:
