@@ -83,9 +83,13 @@ user_config = vars(args).copy()  # for logging
 # Compute init and wandb logging
 
 device_type = autodetect_device_type() if args.device_type == "" else args.device_type
+
+
 ddp, ddp_rank, ddp_local_rank, ddp_world_size, device = compute_init(device_type)
 master_process = ddp_rank == 0 # this process will do logging, checkpointing etc.
 synchronize = torch.cuda.synchronize if device_type == "cuda" else lambda: None
+synchronize = torch.mps.synchronize if device_type == "mps" else synchronize
+
 get_max_memory = torch.cuda.max_memory_allocated if device_type == "cuda" else lambda: 0
 if device_type == "cuda":
     gpu_device_name = torch.cuda.get_device_name(0)
@@ -312,8 +316,9 @@ optimizer = model.setup_optimizer(
     # Muon hyperparameters
     matrix_lr=args.matrix_lr * batch_lr_scale,
     weight_decay=weight_decay_scaled,
+    device_type=device_type if device_type != "cuda" else "cpu" # since k keeps optim in cpu 
 )
-
+# optimizer.to(device)
 if resuming:
     optimizer.load_state_dict(optimizer_data)
     del optimizer_data
@@ -321,6 +326,9 @@ if resuming:
 # -----------------------------------------------------------------------------
 # GradScaler for fp16 training (bf16/fp32 don't need it — bf16 has the same exponent range as fp32)
 scaler = torch.amp.GradScaler() if COMPUTE_DTYPE == torch.float16 else None
+# scaler = torch.cuda.amp.GradScaler() if COMPUTE_DTYPE == torch.float16 else None
+# scaler = torch.cuda.amp.GradScaler(enabled=(dtype == 'float16'))
+
 if scaler is not None:
     print0("GradScaler enabled for fp16 training")
 

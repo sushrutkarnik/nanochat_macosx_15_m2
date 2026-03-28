@@ -39,6 +39,9 @@ class GPTConfig:
     window_pattern: str = "SSSL"
 
 
+# def norm(x):
+#     return F.layer_norm(x, (x.size(-1),)) # note that this will run in bf16, seems ok
+
 def norm(x):
     return F.rms_norm(x, (x.size(-1),)) # note that this will run in bf16, seems ok
 
@@ -114,7 +117,7 @@ class CausalSelfAttention(nn.Module):
                 k=k, v=v,
                 cache_seqlens=kv_cache.cache_seqlens,
                 causal=True,
-                window_size=window_size,
+                window_size=window_size
             )
             # Advance position after last layer processes
             if self.layer_idx == kv_cache.n_layers - 1:
@@ -150,7 +153,7 @@ class Block(nn.Module):
         x = x + self.mlp(norm(x))
         return x
 
-
+# from cut_cross_entropy import linear_cross_entropy
 class GPT(nn.Module):
     def __init__(self, config, pad_vocab_size_to=64):
         """
@@ -355,7 +358,7 @@ class GPT(nn.Module):
             'total': total,
         }
 
-    def setup_optimizer(self, unembedding_lr=0.004, embedding_lr=0.2, matrix_lr=0.02, weight_decay=0.0, scalar_lr=0.5):
+    def setup_optimizer(self, unembedding_lr=0.004, embedding_lr=0.2, matrix_lr=0.02, weight_decay=0.0, scalar_lr=0.5, device_type="cuda"):
         model_dim = self.config.n_embd
         ddp, rank, local_rank, world_size = get_dist_info()
 
@@ -390,7 +393,7 @@ class GPT(nn.Module):
             ))
 
         Factory = DistMuonAdamW if ddp else MuonAdamW
-        optimizer = Factory(param_groups)
+        optimizer = Factory(param_groups, device_type)
         for group in optimizer.param_groups:
             group["initial_lr"] = group["lr"]
         return optimizer
@@ -419,12 +422,14 @@ class GPT(nn.Module):
 
         # Forward the lm_head (compute logits)
         softcap = 15 # smoothly cap the logits to the range [-softcap, softcap]
-        logits = self.lm_head(x) # (B, T, padded_vocab_size) <- very big tensor, large amount of memory
+        logits = self.lm_head(x.to(self.lm_head.weight.dtype)) # (B, T, padded_vocab_size) <- very big tensor, large amount of memory
         logits = logits[..., :self.config.vocab_size] # slice to remove padding
         logits = logits.float() # switch to fp32 for logit softcap and loss computation
         logits = softcap * torch.tanh(logits / softcap) # squash the logits
 
         if targets is not None:
+            if loss_reduction == 'mean' and not (targets != -1).any():
+                return logits.sum() * 0.0
             # training: given the targets, compute and return the loss
             # TODO experiment with chunked cross-entropy?
             loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1), ignore_index=-1, reduction=loss_reduction)
@@ -432,6 +437,19 @@ class GPT(nn.Module):
         else:
             # inference: just return the logits directly
             return logits
+
+
+        # # Forward the lm_head (compute logits)
+        # softcap = 15
+        # if targets is not None:
+        #     # training mode: compute and return the loss
+        #     loss = linear_cross_entropy(x.to( self.lm_head.weight.dtype), self.lm_head.weight, targets=targets, softcap=softcap, ignore_index=-1, reduction=loss_reduction, impl="torch_compile").view(-1)
+        #     return loss
+        # else:
+        #     # inference mode: compute and return the logits
+        #     logits = self.lm_head(x)
+        #     logits = softcap * torch.tanh(logits / softcap) # logits softcap
+        #     return logits
 
     @torch.inference_mode()
     def generate(self, tokens, max_tokens, temperature=1.0, top_k=None, seed=42):
